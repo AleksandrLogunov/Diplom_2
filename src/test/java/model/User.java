@@ -1,5 +1,7 @@
 package model;
 
+import com.github.javafaker.Faker;
+
 public class User {
     private String email;
     private String password;
@@ -12,10 +14,10 @@ public class User {
     }
 
     public static User getRandomUser() {
-        long timestamp = System.currentTimeMillis();
-        String email = "user" + timestamp + "@mail.ru";
-        String password = "pass" + timestamp;
-        String name = "User" + timestamp;
+        Faker faker = new Faker();
+        String email = faker.internet().emailAddress();
+        String password = faker.internet().password(6, 10);
+        String name = faker.name().firstName();
         return new User(email, password, name);
     }
 

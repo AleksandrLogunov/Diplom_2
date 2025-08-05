@@ -1,6 +1,7 @@
 package user;
 
 import client.UserClient;
+import com.github.javafaker.Faker;
 import io.restassured.RestAssured;
 import model.LoginCredentials;
 import model.User;
@@ -12,6 +13,7 @@ public class UpdateUserTest {
     UserClient userClient;
     User testUser;
     String token;
+    User conflictingUser;
 
     @BeforeEach
     void setUp() {
@@ -27,16 +29,19 @@ public class UpdateUserTest {
     @Test
     @DisplayName("Обновление имени с авторизацией")
     void updateNameWithAuth() {
-        testUser.setName("UpdatedName");
+        Faker faker = new Faker();
+        String newName = faker.name().firstName();
+        testUser.setName(newName);
         userClient.updateUser(testUser, token)
                 .then().statusCode(200)
-                .body("user.name", equalTo("UpdatedName"));
+                .body("user.name", equalTo(newName));
     }
 
     @Test
     @DisplayName("Обновление email с авторизацией")
     void updateEmailWithAuth() {
-        String newEmail = "new_email_" + System.currentTimeMillis() + "@mail.ru";
+        Faker faker = new Faker();
+        String newEmail = faker.internet().emailAddress();
         testUser.setEmail(newEmail);
 
         userClient.updateUser(testUser, token)
@@ -48,7 +53,7 @@ public class UpdateUserTest {
     @Test
     @DisplayName("Попытка обновления email на уже занятый email")
     void updateEmailToAlreadyExistingEmailFails() {
-        User conflictingUser = User.getRandomUser();
+        conflictingUser = User.getRandomUser();
         userClient.createUser(conflictingUser)
                 .then().statusCode(200);
 
@@ -63,7 +68,8 @@ public class UpdateUserTest {
     @Test
     @DisplayName("Обновление пароля с авторизацией")
     void updatePasswordWithAuth() {
-        String newPassword = "new_password_" + System.currentTimeMillis();
+        Faker faker = new Faker();
+        String newPassword = faker.internet().password(6, 10);
         testUser.setPassword(newPassword);
 
         userClient.updateUser(testUser, token)
@@ -82,7 +88,8 @@ public class UpdateUserTest {
     @Test
     @DisplayName("Попытка обновления имени без авторизации")
     void updateNameWithoutAuthFails() {
-        testUser.setName("UnauthorizedName");
+        Faker faker = new Faker();
+        testUser.setName(faker.name().firstName());
         userClient.updateUser(testUser, null)
                 .then().statusCode(401)
                 .body("success", is(false))
@@ -92,7 +99,8 @@ public class UpdateUserTest {
     @Test
     @DisplayName("Обновление email без авторизации")
     void updateEmailWithoutAuth() {
-        testUser.setEmail("newemail@mail.ru");
+        Faker faker = new Faker();
+        testUser.setEmail(faker.internet().emailAddress());
         userClient.updateUser(testUser, null)
                 .then().statusCode(401)
                 .body("message", is("You should be authorised"));
@@ -101,7 +109,8 @@ public class UpdateUserTest {
     @Test
     @DisplayName("Попытка обновления пароля без авторизации")
     void updatePasswordWithoutAuthFails() {
-        testUser.setPassword("unauthorized_new_password");
+        Faker faker = new Faker();
+        testUser.setPassword(faker.internet().password(6, 10));
         userClient.updateUser(testUser, null)
                 .then().statusCode(401)
                 .body("success", is(false))
@@ -111,5 +120,8 @@ public class UpdateUserTest {
     @AfterEach
     void tearDown() {
         userClient.deleteUser(testUser);
+        if (conflictingUser != null) {
+            userClient.deleteUser(conflictingUser);
     }
+}
 }
